@@ -1,0 +1,17 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('TraeCodigo') {
+            steps {
+                echo 'Comenzando y estamos en:'
+                pwd()
+                git 'https://github.com/mgsunir/helloworld.git'
+                bat 'dir'
+                bat 'cd %WORKSPACE%'
+                pwd()
+                bat 'dir'
+            }
+        }
+    }
+}
