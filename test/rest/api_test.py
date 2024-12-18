@@ -45,7 +45,7 @@ class TestApi(unittest.TestCase):
             response.read().decode(), "2", "ERROR ADD"
         )
 
-   def test_api_div(self):
+    def test_api_div(self):
         url = f"{BASE_URL}/calc/divide/2/1"
         response = urlopen(url, timeout=DEFAULT_TIMEOUT)
         self.assertEqual(
