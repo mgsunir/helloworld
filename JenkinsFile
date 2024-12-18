@@ -1,4 +1,4 @@
-// http://localhost:8080/env-vars.html/
+// http://localhost:8080/env-vars.html/  
 // java -jar jenkins-cli.jar -s http://yourserver.com delete-builds <JobName> 11-1717
 def repo = "https://github.com/mgsunir/helloworld.git"
 pipeline {
