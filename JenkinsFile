@@ -1,17 +1,108 @@
+// http://localhost:8080/env-vars.html/
+// java -jar jenkins-cli.jar -s http://yourserver.com delete-builds <JobName> 11-1717
+def repo = "https://github.com/mgsunir/helloworld.git"
 pipeline {
+   
     agent any
-
     stages { 
-        stage('TraeCodigo') {
+        stage('GetCode') {
+            
             steps {
-                echo 'Comenzando y estamos en:'
-                pwd()
-                git 'https://github.com/mgsunir/helloworld.git'
+               
+                println("Stage GetCode, Comenzando y estamos en: [ ${WORKSPACE} ] y JOB [ ${JOB_NAME} ] YY NODO:  [ ${NODE_NAME} ]")
+                //echo 'Stage GetCode, Comenzando y estamos en: ${WORKSPACE}  [ %WORKSPACE% ] , JOB ${JOB_NAME} [ %JOB_NAME% ], NODO: ${NODE_NAME}  [ %NODE_NAME% ]'
+                bat 'whoami && hostname'
+                
+                println("Initial cleanup")
+                bat 'del /S /Q app app2 pytest.ini README.md result-rest.xml result-unit.xml Jenkinsfile'
+                
+                echo "${repo}"
+                git  "${repo}"
                 bat 'dir'
-                bat 'cd %WORKSPACE%'
-                pwd()
-                bat 'dir'
+                bat 'echo %WORKSPACE%'
+                println("MAS DE  ${WORKSPACE}")
             }
         }
+        stage('Build') {
+            steps {
+                //echo 'Stage Build, Comenzando y estamos en: ${WORKSPACE} y JOB ${JOB_NAME} NODO: ${NODE_NAME} '
+                println("Stage Build, Comenzando y estamos en: [ ${WORKSPACE} ] y JOB [ ${JOB_NAME} ] YY NODO:  [ ${NODE_NAME} ]")
+                bat 'whoami && hostname'
+
+                println("TEXTO CON PRINTLN EN STAGE BUILD")
+            }
+        }
+        stage ('test') {
+        parallel {
+            stage('unit') {
+                steps {
+                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE',message: 'UNIT FAILURE') {
+                            //echo 'Stage UNIT TESTS, Comenzando y estamos en: ${WORKSPACE}, JOB ${JOB_NAME} NODO: ${NODE_NAME} , RAMA ${BRANCH_NAME}'
+                            println("Unit GetCode, Comenzando y estamos en: [ ${WORKSPACE} ] y JOB [ ${JOB_NAME} ] YY NODO:  [ ${NODE_NAME} ]")
+                            bat 'whoami && hostname'
+
+                            
+                            pwd()
+                            dir('c:\\temp\\1') {
+                                bat 'dir'
+                            }
+                            pwd()
+                           bat 'echo hhhh %WORKSPACE%'
+                            bat '''
+                              set PYTHONPATH=%WORKSPACE%
+                              c:\\Python312\\scripts\\pytest.exe test\\unit --junitxml=result-unit.xml
+                            '''
+                            /* HAY QUE STASHEAR EL result-unit */
+                            stash includes: 'result-unit.xml', name: 'result-unit'
+                             
+                        }
+                }
+            }
+            stage('rest') {
+                steps {
+                    catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE',message: 'REST FAILURRE') {
+                        //echo 'Stage UNIT TESTS, Comenzando y estamos en: ${WORKSPACE}, JOB ${JOB_NAME} NODO: ${NODE_NAME} , RAMA ${BRANCH_NAME}'
+                        println("Stage rest, Comenzando y estamos en: [ ${WORKSPACE} ] y JOB [ ${JOB_NAME} ] YY NODO:  [ ${NODE_NAME} ]")
+                        bat 'whoami && hostname'
+                        pwd()
+                        /* HAY QUE METER WIREMOCK CON UNSTART */
+                        /*  "C:\Program Files\jdk-21.0.5\bin\java.exe"  -jar c:\Python312\Scripts\wiremock-standalone-3.10.0.jar */
+                        bat 'echo hhhh %WORKSPACE%'
+                        bat '''
+                          set FLASK_APP=app\\api.py
+                          echo "Arrancar Flash"
+                          start c:\\Python312\\Scripts\\flask.exe run
+                          cd \\Python312\\Scripts
+                          start C:\\"Program Files"\\jdk-21.0.5\\bin\\java.exe -jar c:\\Python312\\Scripts\\wiremock-standalone-3.10.0.jar --port 9090 C:\\Python312\\Scripts
+                          echo "Flash Arrancado"
+                          cd %WORKSPACE%
+                          c:\\Python312\\scripts\\pytest.exe test\\rest --junitxml=result-rest.xml
+                        '''
+                        // HAY QUE STASHEAR EL result-rest
+                        stash includes: 'result-rest.xml', name: 'result-rest'
+                    }
+                }
+            }
+            
+          }
+        }
+        
+        stage('results') {
+            steps {
+                /* HAY QUE HACER UINESTASH */
+                println("Stage rest, Comenzando y estamos en: [ ${WORKSPACE} ] y JOB [ ${JOB_NAME} ] YY NODO:  [ ${NODE_NAME} ]")
+                bat 'whoami && hostname'
+                unstash 'result-rest'
+                unstash 'result-unit'
+                echo "Comenzando en ${NODE_NAME} y el JOB es ${JOB_NAME}"
+                junit 'result*.xml'
+
+               
+    /*            echo "Comenzando en ${NODE_NAME} y el JOB es ${JOB_NAME}" */
+    /*            junit 'result*.xml'                                        */
+            }
+         }
+        }
+        
+        
     }
-}
